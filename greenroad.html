@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>在Mapbox中加载高德地图与城市绿道数据</title>
+    <script src='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js'></script>
+    <link href='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css' rel='stylesheet' />
+    <style>
+        body { margin: 0; padding: 0; }
+        #map { width: 100vw; height: 100vh; }
+    </style>
+</head>
+<body>
+    <div id='map'></div>
+
+    <script>
+        // 设置您的Mapbox访问令牌
+        mapboxgl.accessToken = 'pk.eyJ1IjoieGVyb2MiLCJhIjoiY21lenIyeWk4MXRuOTJrcTVjMWIwMXc3dCJ9.nMoRkxxiCpnFxmZ1H-ScwQ';
+        
+        // 关键配置：防止官方token校验导致地图无法加载
+        mapboxgl.baseApiUrl = null; 
+
+        const map = new mapboxgl.Map({
+            container: 'map',
+            // 使用经过验证的高德地图瓦片URL
+            style: {
+                version: 8,
+                sources: {
+                    'gaode-tiles': {
+                        type: 'raster',
+                        tiles: [
+                            'https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}',
+                            'http://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}',
+                            'https://wprd01.is.autonavi.com/appmaptile?x={x}&y={y}&z={z}&lang=zh_cn&size=1&scl=1&style=7'
+                        ],
+                        tileSize: 256
+                    }
+                },
+                layers: [{
+                    id: 'gaode-layer',
+                    type: 'raster',
+                    source: 'gaode-tiles',
+                    minzoom: 0,
+                    maxzoom: 22
+                }]
+            },
+            center: [116.40, 39.91],
+            zoom: 10
+        });
+
+        // 添加地图控件
+        map.addControl(new mapboxgl.NavigationControl());
+        
+        // 地图加载完成后自动加载GeoJSON线数据（城市绿道）
+        map.on('load', function() {
+            // 添加GeoJSON数据源，路径指向data文件夹
+            map.addSource('geojson-line', {
+                type: 'geojson',
+                data: '温榆河线图/温榆河.geojson' // 请将文件名替换为实际的GeoJSON文件名
+            });
+            
+            // 添加城市绿道线图层，使用绿色连续线条[1,2](@ref)
+            map.addLayer({
+                id: 'geojson-line-layer',
+                type: 'line',
+                source: 'geojson-line',
+                layout: {
+                    'line-join': 'round',  // 线条连接处圆角
+                    'line-cap': 'round'    // 线条末端圆角
+                },
+                paint: {
+                    'line-color': '#4CAF50',  // 绿色，代表绿道[3](@ref)
+                    'line-width': 5,          // 线条宽度
+                    'line-opacity': 0.9,      // 线条透明度
+                    // 移除line-dasharray属性以确保线条连续不断开
+                }
+            });
+
+            console.log('城市绿道数据已自动加载');
+            
+            // 添加点击交互功能
+            map.on('click', 'geojson-line-layer', (e) => {
+                const coordinates = e.lngLat;
+                const properties = e.features[0].properties;
+                
+                new mapboxgl.Popup()
+                    .setLngLat(coordinates)
+                    .setHTML(`<h3>绿道信息</h3><p>${JSON.stringify(properties, null, 2)}</p>`)
+                    .addTo(map);
+            });
+            
+            // 添加鼠标悬停效果
+            map.on('mouseenter', 'geojson-line-layer', () => {
+                map.getCanvas().style.cursor = 'pointer';
+                // 鼠标悬停时高亮绿道
+                map.setPaintProperty('geojson-line-layer', 'line-color', '#2E7D32');
+                map.setPaintProperty('geojson-line-layer', 'line-width', 6);
+            });
+            
+            map.on('mouseleave', 'geojson-line-layer', () => {
+                map.getCanvas().style.cursor = '';
+                // 恢复原始样式
+                map.setPaintProperty('geojson-line-layer', 'line-color', '#4CAF50');
+                map.setPaintProperty('geojson-line-layer', 'line-width', 5);
+            });
+        });
+        
+        // 处理地图加载错误
+        map.on('error', (e) => {
+            console.error('地图加载错误:', e.error);
+        });
+    </script>
+</body>
+</html>

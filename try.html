@@ -1,0 +1,349 @@
+<!----调用mapbox生成webmap的尝试-->
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapbox调用地图尝试</title>
+    <script src='https://api.mapbox.com/mapbox-gl-js/v2.9.2/mapbox-gl.js'></script>
+    <link href='https://api.mapbox.com/mapbox-gl-js/v2.9.2/mapbox-gl.css' rel='stylesheet' />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Microsoft YaHei', sans-serif;
+        }
+        
+        body {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            color: #333;
+        }
+        
+        header {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            color: #1a2a6c;
+            margin-bottom: 10px;
+        }
+        
+        .container {
+            display: flex;
+            flex: 1;
+            padding: 20px;
+            gap: 20px;
+        }
+        
+        #map {
+            flex: 7;
+            height: 100%;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .sidebar {
+            flex: 3;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            overflow-y: auto;
+        }
+        
+        .controls {
+            margin-bottom: 25px;
+        }
+        
+        h2 {
+            color: #1a2a6c;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #fdbb2d;
+        }
+        
+        .btn {
+            display: inline-block;
+            background: #1a2a6c;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            transition: all 0.3s;
+        }
+        
+        .btn:hover {
+            background: #2a3bac;
+            transform: translateY(-2px);
+        }
+        
+        .btn i {
+            margin-right: 5px;
+        }
+        
+        .info-card {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .info-card h3 {
+            color: #1a2a6c;
+            margin-bottom: 10px;
+        }
+        
+        .location-list {
+            list-style: none;
+        }
+        
+        .location-list li {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .location-list li:hover {
+            background: #f0f5ff;
+        }
+        
+        .location-list li:last-child {
+            border-bottom: none;
+        }
+        
+        .marker {
+            background-image: url('https://docs.mapbox.com/mapbox-gl-js/assets/custom_marker.png');
+            background-size: cover;
+            width: 30px;
+            height: 40px;
+            cursor: pointer;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+            
+            #map {
+                height: 400px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>地图展示</h1>
+        <p>探索北京著名地标 - 点击地图标记或右侧列表查看详情</p>
+    </header>
+    
+    <div class="container">
+        <div id="map"></div>
+        
+        <div class="sidebar">
+            <div class="controls">
+                <h2>地图控制</h2>
+                <button class="btn" id="reset-map"><i class="fas fa-home"></i> 重置视图</button>
+                <button class="btn" id="toggle-satellite"><i class="fas fa-satellite"></i> 卫星视图</button>
+                <button class="btn" id="add-marker"><i class="fas fa-map-marker-alt"></i> 添加标记</button>
+            </div>
+            
+            <div class="info-panel">
+                <h2>地点信息</h2>
+                <div class="info-card">
+                    <h3>选择地点查看详情</h3>
+                    <p>点击地图上的标记或右侧列表中的地点名称，将在这里显示详细信息。</p>
+                </div>
+                
+                <h2>北京著名地标</h2>
+                <ul class="location-list">
+                    <li data-lng="116.3974" data-lat="39.9093">天安门广场</li>
+                    <li data-lng="116.4039" data-lat="39.9150">故宫博物院</li>
+                    <li data-lng="116.5704" data-lat="39.9388">颐和园</li>
+                    <li data-lng="116.3940" data-lat="39.9963">奥林匹克公园</li>
+                    <li data-lng="116.2310" data-lat="40.0028">长城（八达岭）</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <footer>
+        <p>© 2023 Mapbox中文地图示例 | 使用Mapbox GL JS创建</p>
+    </footer>
+
+    <script>
+        // 设置Mapbox访问令牌
+        mapboxgl.accessToken = 'pk.eyJ1IjoieGVyb2MiLCJhIjoiY21nbm13aTljMWdxYzJrcXc5YzJoOHM0diJ9.uDrZ3kIl3eqQSbrJb8QnAA';
+        
+        // 初始化地图
+        const map = new mapboxgl.Map({
+            container: 'map',
+            style: 'mapbox://styles/mapbox/streets-v12', // 使用支持多语言的样式
+            center: [116.4074, 39.9042], // 北京市中心
+            zoom: 10,
+            locale: 'zh-Hans' // 设置语言为中文
+        });
+        
+        // 添加导航控件
+        map.addControl(new mapboxgl.NavigationControl());
+
+        
+        // 添加比例尺
+        map.addControl(new mapboxgl.ScaleControl());
+        
+        // 存储标记的数组
+        const markers = [];
+        
+        // 地点数据
+        const locations = [
+            {
+                name: "天安门广场",
+                coordinates: [116.3974, 39.9093],
+                description: "天安门广场是世界上最大的城市广场，位于北京市中心，占地面积44公顷。"
+            },
+            {
+                name: "故宫博物院",
+                coordinates: [116.4039, 39.9150],
+                description: "故宫又称紫禁城，是明清两代的皇宫，是世界上现存规模最大、保存最为完整的木质结构古建筑群。"
+            },
+            {
+                name: "颐和园",
+                coordinates: [116.5704, 39.9388],
+                description: "颐和园是中国清朝时期皇家园林，以杭州西湖为蓝本，汲取江南园林的设计手法而建成的一座大型山水园林。"
+            },
+            {
+                name: "奥林匹克公园",
+                coordinates: [116.3940, 39.9963],
+                description: "北京奥林匹克公园是2008年北京奥运会的主要举办地，包括鸟巢、水立方等标志性建筑。"
+            },
+            {
+                name: "长城（八达岭）",
+                coordinates: [116.2310, 40.0028],
+                description: "八达岭长城是明长城中保存最好的一段，也是最具代表性的一段，是游览北京的必到之处。"
+            }
+        ];
+        
+        // 地图加载完成后添加标记
+        map.on('load', () => {
+            // 添加默认标记
+            locations.forEach(location => {
+                addMarker(location);
+            });
+            
+            // 添加点击标记事件
+            document.querySelectorAll('.location-list li').forEach(item => {
+                item.addEventListener('click', function() {
+                    const lng = parseFloat(this.getAttribute('data-lng'));
+                    const lat = parseFloat(this.getAttribute('data-lat'));
+                    
+                    // 飞转到该位置
+                    map.flyTo({
+                        center: [lng, lat],
+                        zoom: 14,
+                        essential: true
+                    });
+                    
+                    // 显示地点信息
+                    const location = locations.find(loc => 
+                        loc.coordinates[0] === lng && loc.coordinates[1] === lat
+                    );
+                    
+                    if (location) {
+                        showLocationInfo(location);
+                    }
+                });
+            });
+        });
+        
+        // 添加标记函数
+        function addMarker(location) {
+            // 创建自定义标记元素
+            const el = document.createElement('div');
+            el.className = 'marker';
+            el.style.backgroundImage = 'url(https://docs.mapbox.com/mapbox-gl-js/assets/custom_marker.png)';
+            el.style.width = '30px';
+            el.style.height = '40px';
+            el.style.cursor = 'pointer';
+            
+            // 创建标记
+            const marker = new mapboxgl.Marker(el)
+                .setLngLat(location.coordinates)
+                .setPopup(new mapboxgl.Popup({ offset: 25 })
+                    .setHTML(`<h3>${location.name}</h3><p>${location.description}</p>`))
+                .addTo(map);
+                
+            // 存储标记引用
+            markers.push(marker);
+            
+            // 添加点击事件
+            el.addEventListener('click', () => {
+                showLocationInfo(location);
+            });
+        }
+        
+        // 显示地点信息
+        function showLocationInfo(location) {
+            const infoCard = document.querySelector('.info-card');
+            infoCard.innerHTML = `
+                <h3>${location.name}</h3>
+                <p>${location.description}</p>
+                <p>坐标: ${location.coordinates[0].toFixed(4)}, ${location.coordinates[1].toFixed(4)}</p>
+            `;
+        }
+        
+        // 重置地图视图
+        document.getElementById('reset-map').addEventListener('click', () => {
+            map.flyTo({
+                center: [116.4074, 39.9042],
+                zoom: 10,
+                essential: true
+            });
+        });
+        
+        // 切换卫星视图
+        let isSatellite = false;
+        document.getElementById('toggle-satellite').addEventListener('click', () => {
+            isSatellite = !isSatellite;
+            map.setStyle(isSatellite ? 
+                'mapbox://styles/mapbox/satellite-v9' : 
+                'mapbox://styles/mapbox/streets-v12'
+            );
+        });
+        
+        // 添加新标记
+        document.getElementById('add-marker').addEventListener('click', () => {
+            const center = map.getCenter();
+            const newLocation = {
+                name: "自定义位置",
+                coordinates: [center.lng, center.lat],
+                description: "这是您自定义添加的位置标记。"
+            };
+            
+            addMarker(newLocation);
+            
+            // 显示新添加的位置信息
+            showLocationInfo(newLocation);
+        });
+    </script>
+</body>
+</html>
