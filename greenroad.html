@@ -3,36 +3,66 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>在Mapbox中加载高德地图与城市绿道数据</title>
+    <title>北京绿道系统 - 完整视图</title>
     <script src='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js'></script>
     <link href='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css' rel='stylesheet' />
     <style>
-        body { margin: 0; padding: 0; }
-        #map { width: 100vw; height: 100vh; }
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f5f5f5;
+        }
+        .map-container {
+            width: 90vw;  /* 使用视口宽度，确保容器足够大 */
+            height: 70vh; /* 调整高度，尝试不同的宽高比 */
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+        .mapboxgl-popup {
+            max-width: 200px;
+            font: 14px/20px 'Microsoft YaHei', Arial, sans-serif;
+        }
+        .mapboxgl-popup-content {
+            padding: 10px;
+            border-radius: 5px;
+            background-color: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
     </style>
 </head>
 <body>
-    <div id='map'></div>
+    <div class="map-container">
+        <div id="map"></div>
+    </div>
 
     <script>
-        // 设置您的Mapbox访问令牌
         mapboxgl.accessToken = 'pk.eyJ1IjoieGVyb2MiLCJhIjoiY21lenIyeWk4MXRuOTJrcTVjMWIwMXc3dCJ9.nMoRkxxiCpnFxmZ1H-ScwQ';
-        
-        // 关键配置：防止官方token校验导致地图无法加载
-        mapboxgl.baseApiUrl = null; 
+        mapboxgl.baseApiUrl = null;
+
+        // 1. 定义北京地理边界 - 根据实际数据调整范围
+        const beijingBounds = [
+            [115.4, 39.4], // 西南角：扩大一些以确保完整显示
+            [117.6, 41.1]  // 东北角：扩大一些以确保完整显示
+        ];
 
         const map = new mapboxgl.Map({
             container: 'map',
-            // 使用经过验证的高德地图瓦片URL
             style: {
                 version: 8,
                 sources: {
                     'gaode-tiles': {
                         type: 'raster',
                         tiles: [
-                            'https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}',
-                            'http://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}',
-                            'https://wprd01.is.autonavi.com/appmaptile?x={x}&y={y}&z={z}&lang=zh_cn&size=1&scl=1&style=7'
+                            'https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}'
                         ],
                         tileSize: 256
                     }
@@ -41,74 +71,120 @@
                     id: 'gaode-layer',
                     type: 'raster',
                     source: 'gaode-tiles',
-                    minzoom: 0,
-                    maxzoom: 22
+                    minzoom: 3,    // 允许更大范围的缩放
+                    maxzoom: 18    // 允许更详细的缩放
                 }]
             },
-            center: [116.40, 39.91],
-            zoom: 10
+            center: [116.5, 40.25],  // 调整北京市中心位置
+            zoom: 8.2,           // 减小缩放级别以显示更大范围
+            maxBounds: beijingBounds, // 严格限制地图平移范围到北京边界
+            // 允许基本交互，但限制范围
+            interactive: true,    // 启用交互
+            scrollZoom: true,    // 允许滚轮缩放
+            doubleClickZoom: true, // 允许双击缩放
+            dragPan: true,       // 允许拖动
+            dragRotate: false,   // 禁用旋转
+            keyboard: true,      // 允许键盘控制
+            pitchWithRotate: false, // 禁用倾斜
+            maxZoom: 13,         // 稍微降低最大缩放级别
+            minZoom: 7.5        // 提高最小缩放级别以确保始终显示整个北京
         });
 
-        // 添加地图控件
-        map.addControl(new mapboxgl.NavigationControl());
-        
-        // 地图加载完成后自动加载GeoJSON线数据（城市绿道）
+        // 2. 在地图加载后，确保完整显示北京区域
         map.on('load', function() {
-            // 添加GeoJSON数据源，路径指向data文件夹
-            map.addSource('geojson-line', {
+            // 使用fitBounds设置最佳视图以显示整个北京
+            map.fitBounds(beijingBounds, {
+                padding: {top: 40, bottom: 40, left: 40, right: 40}, // 增加边距以确保边界线完全可见
+                maxZoom: 9, // 降低最大缩放级别以显示更大范围
+                duration: 0  // 立即完成，不使用动画
+            });
+
+            // 加载您的GeoJSON数据
+            // 添加北京边界数据源
+            map.addSource('beijing-boundary', {
                 type: 'geojson',
-                data: '温榆河线图/温榆河.geojson' // 请将文件名替换为实际的GeoJSON文件名
+                data: '数据/北京边界.geojson'
             });
             
-            // 添加城市绿道线图层，使用绿色连续线条[1,2](@ref)
+            // 添加北京边界图层
+            map.addLayer({
+                id: 'beijing-boundary-layer',
+                type: 'line',
+                source: 'beijing-boundary',
+                paint: {
+                    'line-color': '#FF0000',
+                    'line-width': 5,
+                    'line-opacity': 0.8
+                }
+            });
+
+            // 添加温榆河数据源
+            map.addSource('geojson-line', {
+                type: 'geojson',
+                data: '数据/绿道/温榆河线图/温榆河.geojson'
+            });
             map.addLayer({
                 id: 'geojson-line-layer',
                 type: 'line',
                 source: 'geojson-line',
-                layout: {
-                    'line-join': 'round',  // 线条连接处圆角
-                    'line-cap': 'round'    // 线条末端圆角
-                },
                 paint: {
-                    'line-color': '#4CAF50',  // 绿色，代表绿道[3](@ref)
-                    'line-width': 5,          // 线条宽度
-                    'line-opacity': 0.9,      // 线条透明度
-                    // 移除line-dasharray属性以确保线条连续不断开
+                    'line-color': '#4CAF50',
+                    'line-width': 4,
+                    'line-opacity': 0.8
                 }
             });
 
-            console.log('城市绿道数据已自动加载');
-            
-            // 添加点击交互功能
-            map.on('click', 'geojson-line-layer', (e) => {
-                const coordinates = e.lngLat;
-                const properties = e.features[0].properties;
+            // 创建一个 popup 但不立即添加到地图
+            const popup = new mapboxgl.Popup({
+                closeButton: false,
+                closeOnClick: false,
+                offset: [0, -10] // 稍微向上偏移，避免遮挡线条
+            });
+
+            // 鼠标悬停在绿道上时的事件
+            map.on('mouseenter', 'geojson-line-layer', (e) => {
+                // 改变鼠标样式为手型
+                map.getCanvas().style.cursor = 'pointer';
                 
-                new mapboxgl.Popup()
-                    .setLngLat(coordinates)
-                    .setHTML(`<h3>绿道信息</h3><p>${JSON.stringify(properties, null, 2)}</p>`)
+                // 获取鼠标位置的坐标
+                const coordinates = e.lngLat;
+
+                // 设置popup内容
+                const description = `
+                    <div style="color: #333;">
+                        <h3 style="margin: 0 0 8px 0; color: #2E7D32; font-size: 16px;">温榆河绿道</h3>
+                        <p style="margin: 0; font-size: 14px; color: #666;">
+                            北京市重要的生态景观廊道
+                        </p>
+                    </div>
+                `;
+
+                // 显示popup
+                popup.setLngLat(coordinates)
+                    .setHTML(description)
                     .addTo(map);
             });
-            
-            // 添加鼠标悬停效果
-            map.on('mouseenter', 'geojson-line-layer', () => {
-                map.getCanvas().style.cursor = 'pointer';
-                // 鼠标悬停时高亮绿道
-                map.setPaintProperty('geojson-line-layer', 'line-color', '#2E7D32');
-                map.setPaintProperty('geojson-line-layer', 'line-width', 6);
-            });
-            
+
+            // 鼠标离开绿道时的事件
             map.on('mouseleave', 'geojson-line-layer', () => {
+                // 恢复默认鼠标样式
                 map.getCanvas().style.cursor = '';
-                // 恢复原始样式
-                map.setPaintProperty('geojson-line-layer', 'line-color', '#4CAF50');
-                map.setPaintProperty('geojson-line-layer', 'line-width', 5);
+                // 移除popup
+                popup.remove();
             });
+
+            console.log('地图已加载完成，交互功能已启用');
         });
-        
-        // 处理地图加载错误
-        map.on('error', (e) => {
-            console.error('地图加载错误:', e.error);
+
+        // 3. 可选：如果地图容器尺寸变化，重新调整视图
+        window.addEventListener('resize', function() {
+            setTimeout(function() {
+                map.fitBounds(beijingBounds, {
+                    padding: 20,
+                    maxZoom: 12,
+                    duration: 0
+                });
+            }, 500);
         });
     </script>
 </body>
