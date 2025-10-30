@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>北京温榆河滨水绿道</title>
+    <link href='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css' rel='stylesheet' />
+    <script src='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js'></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --theme-green: #4CAF50;
+            --theme-blue: #2196F3;
+            --theme-purple: #673AB7;
+            --text-dark: #2c3e50;
+            --text-light: #ffffff;
+            --bg-gradient: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            --shadow-soft: 0 4px 20px rgba(0,0,0,0.1);
+            --border-radius: 16px;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans SC', "Microsoft YaHei", sans-serif;
+            color: var(--text-dark);
+            line-height: 1.6;
+            background: var(--bg-gradient);
+            min-height: 100vh;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            color: var(--text-dark);
+            padding: 2rem;
+            text-align: center;
+            margin: 2rem 2rem 0 2rem;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-soft);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--theme-green), var(--theme-blue));
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(90deg, var(--theme-green), var(--theme-blue));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-weight: 700;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        .info-section {
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-soft);
+            transition: transform 0.3s ease;
+        }
+
+        .info-section:hover {
+            transform: translateY(-5px);
+        }
+
+        .feature-image {
+            width: 100%;
+            height: 300px;
+            object-fit: cover;
+            border-radius: var(--border-radius);
+            margin: 1rem 0;
+            box-shadow: var(--shadow-soft);
+            transition: transform 0.3s ease;
+        }
+
+        .feature-image:hover {
+            transform: scale(1.02);
+        }
+
+        .map-container {
+            width: 100%;
+            height: 500px;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            position: relative;
+            box-shadow: var(--shadow-soft);
+        }
+
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+        }
+
+        .highlights {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            padding: 1.5rem;
+            border-radius: var(--border-radius);
+            margin-top: 1.5rem;
+            box-shadow: var(--shadow-soft);
+        }
+
+        .highlights h3 {
+            color: var(--theme-blue);
+            margin-bottom: 1.5rem;
+            font-size: 1.4rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .highlights h3::before {
+            content: '';
+            display: block;
+            width: 4px;
+            height: 1em;
+            background: linear-gradient(180deg, var(--theme-green), var(--theme-blue));
+            border-radius: 2px;
+        }
+
+        .highlights ul {
+            list-style-type: none;
+        }
+
+        .highlights li {
+            margin: 1rem 0;
+            padding: 0.8rem 1rem 0.8rem 2.5rem;
+            position: relative;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 8px;
+            transition: transform 0.2s ease;
+        }
+
+        .highlights li:hover {
+            transform: translateX(5px);
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .highlights li::before {
+            content: "\f058";
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            color: var(--theme-green);
+            position: absolute;
+            left: 0.8rem;
+            opacity: 0.8;
+        }
+
+        /* Mapbox 控件样式优化 */
+        .mapboxgl-ctrl-group {
+            border: none !important;
+            border-radius: 12px !important;
+            overflow: hidden;
+            box-shadow: var(--shadow-soft) !important;
+        }
+
+        .mapboxgl-ctrl-group button {
+            width: 36px !important;
+            height: 36px !important;
+            background: rgba(255, 255, 255, 0.9) !important;
+            backdrop-filter: blur(10px);
+            transition: all 0.2s ease;
+        }
+
+        .mapboxgl-ctrl-group button:hover {
+            background: rgba(255, 255, 255, 0.95) !important;
+        }
+
+        /* 动画效果 */
+        @keyframes fadeIn {
+            from { 
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header, .info-section {
+            animation: fadeIn 0.8s ease backwards;
+        }
+
+        .info-section:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        /* 滚动条美化 */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.05);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0,0,0,0.2);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(0,0,0,0.3);
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 1200px) {
+            .content {
+                grid-template-columns: 1fr;
+                max-width: 800px;
+            }
+            
+            .header {
+                margin: 1rem 1rem 0 1rem;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .content {
+                padding: 1rem;
+            }
+
+            .header {
+                padding: 1.5rem;
+                margin: 0.5rem 0.5rem 0 0.5rem;
+            }
+
+            .info-section {
+                padding: 1.5rem;
+            }
+
+            .highlights li {
+                padding: 0.6rem 1rem 0.6rem 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>北京温榆河滨水绿道</h1>
+        <p><i class="fas fa-leaf" style="color: var(--theme-green); margin-right: 0.5rem;"></i>沿河而行，探索城市绿色长廊</p>
+    </header>
+
+    <div class="content">
+        <div class="info-section">
+            <img src="数据/绿道/温榆河绿道/温榆河风景.jpg" alt="温榆河绿道景观" class="feature-image">
+            <div class="highlights">
+                <h3><i class="fas fa-star" style="color: var(--theme-green);"></i>绿道亮点</h3>
+                <ul>
+                    <li>
+                        <strong style="color: var(--theme-blue)">总长度：</strong>
+                        <span style="color: #666">108公里</span>
+                    </li>
+                    <li>
+                        <strong style="color: var(--theme-blue)">覆盖区域：</strong>
+                        <span style="color: #666">昌平、顺义、朝阳、通州四区</span>
+                    </li>
+                    <li>
+                        <strong style="color: var(--theme-blue)">建设面积：</strong>
+                        <span style="color: #666">417公顷</span>
+                    </li>
+                    <li>
+                        <strong style="color: var(--theme-blue)">特色：</strong>
+                        <span style="color: #666">滨水生态景观、休闲步道系统</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <div class="map-container">
+                <div id="map"></div>
+            </div>
+            <div class="highlights">
+                <h3><i class="fas fa-info-circle" style="color: var(--theme-blue);"></i>绿道简介</h3>
+                <p style="line-height: 1.8; color: #666; padding: 0 0.5rem;">温榆河滨水绿道是北京市级滨水型绿道，发源于昌平区军都山麓，自沙河水库至通州区北关拦河闸段为大运河上游。沿线串联多个生态景观节点，包括巩华城、沙河闸公园、未来科技城滨水公园等，是市民休闲游憩的绝佳去处。</p>
+                <div style="margin-top: 1rem; display: flex; gap: 1rem; flex-wrap: wrap; padding: 0 0.5rem;">
+                    <span class="badge" style="background: rgba(76, 175, 80, 0.1); color: var(--theme-green); padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.9rem;">
+                        <i class="fas fa-tree"></i> 生态景观
+                    </span>
+                    <span class="badge" style="background: rgba(33, 150, 243, 0.1); color: var(--theme-blue); padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.9rem;">
+                        <i class="fas fa-water"></i> 滨水休闲
+                    </span>
+                    <span class="badge" style="background: rgba(103, 58, 183, 0.1); color: var(--theme-purple); padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.9rem;">
+                        <i class="fas fa-bicycle"></i> 运动健身
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        mapboxgl.accessToken = 'pk.eyJ1IjoieGlhb2h1aTI4IiwiYSI6ImNsZzVnNThkNzA3Z2wzcW54eHVweHd0YTYifQ.eZKE5fovyzaL2U7QABtHMw';
+        mapboxgl.baseApiUrl = null;
+
+        const map = new mapboxgl.Map({
+            container: 'map',
+            style: {
+                version: 8,
+                sources: {
+                    'osm-tiles': {
+                        type: 'raster',
+                        tiles: [
+                            'https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}'
+                        ],
+                        tileSize: 256
+                    }
+                },
+                layers: [{
+                    id: 'osm-tiles',
+                    type: 'raster',
+                    source: 'osm-tiles',
+                    minzoom: 0,
+                    maxzoom: 22
+                }]
+            },
+            center: [116.5, 40],
+            zoom: 10
+        });
+
+        map.on('load', () => {
+            map.addSource('greenway', {
+                type: 'geojson',
+                data: '数据/绿道/温榆河绿道/温榆河.geojson'
+            });
+
+            map.addLayer({
+                id: 'greenway-line',
+                type: 'line',
+                source: 'greenway',
+                paint: {
+                    'line-color': '#2196F3',
+                    'line-width': 4,
+                    'line-opacity': 0.8
+                }
+            });
+        });
+    </script>
+</body>
+</html>
