@@ -1,0 +1,16 @@
+# Git内部文件
+.git/
+
+# 日志文件
+*.log
+
+# 运行时文件
+*.tmp
+*.temp
+
+# 环境变量文件
+.env
+.env.local
+
+# 依赖文件夹
+node_modules/
