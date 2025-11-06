@@ -1,4 +1,4 @@
-# Beijing Greenway System Visualization Platform# Beijing Greenway System Visualization Platform# Beijing Greenway System Visualization Platform# 北京绿道系统 Vue 版本
+# Beijing Greenway System Visualization Platform#  北京绿道系统 Vue 版本
 
 
 
@@ -785,3 +785,4 @@ MIT License
 ---
 
 **Made with ❤️ by 北京绿道系统开发团队**
+
