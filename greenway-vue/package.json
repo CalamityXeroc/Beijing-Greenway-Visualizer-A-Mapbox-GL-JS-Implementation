@@ -8,11 +8,14 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "vue": "^3.4.0",
-    "vue-router": "^4.2.5",
-    "pinia": "^2.1.7",
+    "@photo-sphere-viewer/core": "^5.14.0",
+    "@photo-sphere-viewer/markers-plugin": "^5.14.0",
+    "@photo-sphere-viewer/virtual-tour-plugin": "^5.14.0",
+    "axios": "^1.6.0",
     "ol": "^8.2.0",
-    "axios": "^1.6.0"
+    "pinia": "^2.1.7",
+    "vue": "^3.4.0",
+    "vue-router": "^4.2.5"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.0",

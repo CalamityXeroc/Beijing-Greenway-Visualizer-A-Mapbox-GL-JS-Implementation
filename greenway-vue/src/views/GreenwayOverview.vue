@@ -1,7 +1,7 @@
 <template>
   <div class="greenroad-page">
     <header class="header">
-      <h1>北京绿道系统总览</h1>
+      <h1>北京绿道系统可视化平台</h1>
       <p><i class="fas fa-map-marked-alt"></i> 探索城市绿色网络，享受健康生活</p>
     </header>
 
@@ -123,7 +123,32 @@
       </div>
     </div>
 
-    <!-- 弹窗 -->
+    <!-- 悬浮提示框 (Tooltip) -->
+    <div v-if="tooltip.visible" class="hover-tooltip" :style="tooltipStyle">
+      <div class="tooltip-header">
+        <i class="fas fa-route"></i>
+        <strong>{{ tooltip.title }}</strong>
+      </div>
+      <div class="tooltip-body">
+        <div class="tooltip-item" v-if="tooltip.data.length">
+          <i class="fas fa-ruler"></i>
+          <span>总长度：{{ tooltip.data.length }} km</span>
+        </div>
+        <div class="tooltip-item" v-if="tooltip.data.area">
+          <i class="fas fa-map-marked-alt"></i>
+          <span>覆盖区域：{{ tooltip.data.area }}</span>
+        </div>
+        <div class="tooltip-item" v-if="tooltip.data.description">
+          <i class="fas fa-info-circle"></i>
+          <span>{{ tooltip.data.description }}</span>
+        </div>
+      </div>
+      <div class="tooltip-footer">
+        <small><i class="fas fa-mouse-pointer"></i> 点击查看详情</small>
+      </div>
+    </div>
+
+    <!-- 弹窗 (点击后显示) -->
     <div v-if="popup.visible" class="popup" :style="popupStyle">
       <div class="popup-content" @mousedown="startDrag">
         <div class="popup-header">
@@ -215,7 +240,20 @@ const layers = computed(() => {
 // 选中的绿道
 const selectedGreenway = ref(null)
 
-// 弹窗状态
+// 悬浮提示框状态 (Tooltip - 鼠标悬停时显示)
+const tooltip = reactive({
+  visible: false,
+  title: '',
+  data: {},
+  position: { x: 0, y: 0 }
+})
+
+const tooltipStyle = computed(() => ({
+  left: `${tooltip.position.x + 15}px`,  // 偏移15px，避免遮挡鼠标
+  top: `${tooltip.position.y + 15}px`
+}))
+
+// 弹窗状态 (Popup - 点击后显示)
 const popup = reactive({
   visible: false,
   title: '',
@@ -276,7 +314,7 @@ const selectedLayer = ref(null)
 const selectedLayerId = ref(null)
 
 // 高亮整个图层的所有要素
-const highlightLayer = (layerId, color, width) => {
+const highlightLayer = (layerId, color, width, isHover = false) => {
   const mapViewerComponent = mapViewer.value
   if (!mapViewerComponent) return
   
@@ -289,13 +327,39 @@ const highlightLayer = (layerId, color, width) => {
   const source = layer.getSource()
   const features = source.getFeatures()
   
-  // 创建高亮样式
-  const highlightStyle = new Style({
-    stroke: new Stroke({
-      color: color,
-      width: width
+  // 创建带阴影效果的高亮样式
+  const highlightStyle = [
+    // 外层阴影（模拟发光效果）
+    new Style({
+      stroke: new Stroke({
+        color: isHover ? 'rgba(255, 215, 0, 0.4)' : 'rgba(255, 107, 53, 0.4)',
+        width: width + 6,
+        lineCap: 'round',
+        lineJoin: 'round'
+      }),
+      zIndex: 1
+    }),
+    // 中层阴影
+    new Style({
+      stroke: new Stroke({
+        color: isHover ? 'rgba(255, 215, 0, 0.6)' : 'rgba(255, 107, 53, 0.6)',
+        width: width + 3,
+        lineCap: 'round',
+        lineJoin: 'round'
+      }),
+      zIndex: 2
+    }),
+    // 主线条
+    new Style({
+      stroke: new Stroke({
+        color: color,
+        width: width,
+        lineCap: 'round',
+        lineJoin: 'round'
+      }),
+      zIndex: 3
     })
-  })
+  ]
   
   // 给所有要素设置高亮样式
   features.forEach(feature => {
@@ -345,8 +409,8 @@ const onFeatureClick = ({ features, featuresWithLayers, pixel }) => {
       clearLayerHighlight(selectedLayerId.value)
     }
     
-    // 高亮整个绿道图层（橙红色表示选中）
-    highlightLayer('wenyu-greenway', '#FF6B35', 5)
+    // 高亮整个绿道图层（橙红色表示选中，第四个参数 false 表示是点击状态）
+    highlightLayer('wenyu-greenway', '#FF6B35', 5, false)
     selectedLayerId.value = 'wenyu-greenway'
 
     // 查找对应的图层配置
@@ -354,6 +418,9 @@ const onFeatureClick = ({ features, featuresWithLayers, pixel }) => {
     
     if (layerInfo && layerInfo.info) {
       selectedGreenway.value = layerInfo.info
+      
+      // 隐藏悬停提示框
+      tooltip.visible = false
       
       // 显示弹窗
       popup.title = layerInfo.info.name
@@ -368,29 +435,62 @@ const onFeatureClick = ({ features, featuresWithLayers, pixel }) => {
 }
 
 // 要素悬停
-const onFeatureHover = ({ featuresWithLayers }) => {
-  // 如果已经有选中的图层，悬停不改变样式
-  if (selectedLayerId.value) {
-    return
-  }
+const onFeatureHover = ({ featuresWithLayers, pixel, coordinate }) => {
+  // 如果已经有选中的图层，只显示tooltip，不改变高亮样式
+  const isLayerSelected = selectedLayerId.value !== null
   
   if (featuresWithLayers && featuresWithLayers.length > 0) {
     // 只处理绿道图层
     const greenwayFeature = featuresWithLayers.find(f => f.layerId === 'wenyu-greenway')
     
-    if (greenwayFeature && greenwayFeature.feature !== hoveredFeature.value) {
-      // 清除之前的高亮
-      if (hoveredFeature.value) {
-        clearLayerHighlight('wenyu-greenway')
+    if (greenwayFeature) {
+      // 查找绿道信息
+      const layerInfo = layerConfig.value.find(l => l.id === 'wenyu-greenway')
+      
+      // 只有在弹窗未显示时才显示悬浮提示框
+      if (layerInfo && layerInfo.info && !popup.visible) {
+        tooltip.title = layerInfo.info.name
+        tooltip.data = {
+          length: layerInfo.info.length,
+          area: layerInfo.info.area,
+          description: layerInfo.info.description
+        }
+        tooltip.position = { x: pixel[0], y: pixel[1] }
+        tooltip.visible = true
       }
       
-      // 高亮整个绿道图层（金色表示悬停）
-      hoveredFeature.value = greenwayFeature.feature
-      highlightLayer('wenyu-greenway', '#FFD700', 6)
+      // 如果没有选中的图层，才更新高亮效果
+      if (!isLayerSelected) {
+        // 只有当悬停到不同的要素时才更新高亮
+        if (greenwayFeature.feature !== hoveredFeature.value) {
+          // 清除之前的高亮
+          if (hoveredFeature.value) {
+            clearLayerHighlight('wenyu-greenway')
+          }
+          
+          // 高亮整个绿道图层（金色表示悬停，第四个参数 true 表示是悬停状态）
+          hoveredFeature.value = greenwayFeature.feature
+          highlightLayer('wenyu-greenway', '#FFD700', 6, true)
+        }
+      }
+    } else {
+      // 鼠标不在绿道图层上
+      // 隐藏tooltip
+      tooltip.visible = false
+      
+      // 如果没有选中的图层，清除悬停高亮
+      if (!isLayerSelected && hoveredFeature.value) {
+        clearLayerHighlight('wenyu-greenway')
+        hoveredFeature.value = null
+      }
     }
   } else {
-    // 清除悬停高亮
-    if (hoveredFeature.value) {
+    // 没有任何要素在鼠标下方
+    // 隐藏tooltip
+    tooltip.visible = false
+    
+    // 如果没有选中的图层，清除悬停高亮
+    if (!isLayerSelected && hoveredFeature.value) {
       clearLayerHighlight('wenyu-greenway')
       hoveredFeature.value = null
     }
@@ -464,16 +564,25 @@ onMounted(() => {
 }
 
 .header {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(15px);
+  background: transparent;
+  backdrop-filter: none;
   color: #2c3e50;
-  padding: 0.75rem 1.5rem;
+  padding: 1.2rem 2rem;
   text-align: center;
   margin: 0;
-  box-shadow: 0 2px 12px rgba(76, 175, 80, 0.15);
-  position: relative;
-  z-index: 10;
+  box-shadow: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
   flex-shrink: 0;
+  pointer-events: none;
+}
+
+.header h1,
+.header p {
+  pointer-events: auto;
 }
 
 /* 删除顶部绿色装饰线 */
@@ -484,27 +593,33 @@ onMounted(() => {
 }
 
 .header h1 {
-  font-size: 1.5rem;
-  margin: 0 0 0.15rem 0;
-  background: linear-gradient(120deg, #2E7D32, #4CAF50, #66BB6A);
+  font-size: 2.2rem;
+  margin: 0 0 0.3rem 0;
+  background: linear-gradient(120deg, #1B5E20, #2E7D32, #4CAF50, #66BB6A);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  font-weight: 700;
-  text-shadow: 0 2px 10px rgba(76, 175, 80, 0.1);
+  font-weight: 800;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3),
+               0 4px 16px rgba(76, 175, 80, 0.4);
+  filter: drop-shadow(0 2px 4px rgba(255, 255, 255, 0.8));
+  letter-spacing: 3px;
 }
 
 .header p {
-  color: #558B2F;
-  font-size: 0.85rem;
-  font-weight: 500;
+  color: #1B5E20;
+  font-size: 1rem;
+  font-weight: 600;
   margin: 0;
+  text-shadow: 0 2px 4px rgba(255, 255, 255, 0.9),
+               0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 .header i {
   color: #4CAF50;
   margin-right: 0.5rem;
-  filter: drop-shadow(0 2px 4px rgba(76, 175, 80, 0.3));
+  filter: drop-shadow(0 2px 4px rgba(255, 255, 255, 0.8))
+          drop-shadow(0 2px 4px rgba(76, 175, 80, 0.6));
 }
 
 .map-container {
@@ -827,6 +942,119 @@ onMounted(() => {
 
   .header p {
     font-size: 0.875rem;
+  }
+}
+
+/* 悬停提示框 */
+.hover-tooltip {
+  position: fixed;
+  z-index: 9999;
+  pointer-events: none;
+  background: rgba(255, 255, 255, 0.98);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  padding: 0;
+  min-width: 280px;
+  max-width: 320px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(76, 175, 80, 0.2);
+  overflow: hidden;
+  animation: tooltipFadeIn 0.2s ease-out;
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tooltip-header {
+  background: linear-gradient(135deg, #4CAF50, #66BB6A);
+  color: white;
+  padding: 0.875rem 1rem;
+  font-weight: 600;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.tooltip-header i {
+  font-size: 1.1rem;
+}
+
+.tooltip-body {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.tooltip-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  font-size: 0.875rem;
+  color: #424242;
+  line-height: 1.5;
+}
+
+.tooltip-item i {
+  color: #4CAF50;
+  font-size: 0.875rem;
+  margin-top: 0.15rem;
+  flex-shrink: 0;
+}
+
+.tooltip-item strong {
+  color: #2E7D32;
+  font-weight: 600;
+  margin-right: 0.25rem;
+}
+
+.tooltip-footer {
+  background: rgba(76, 175, 80, 0.08);
+  padding: 0.625rem 1rem;
+  font-size: 0.75rem;
+  color: #666;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  border-top: 1px solid rgba(76, 175, 80, 0.1);
+}
+
+.tooltip-footer i {
+  font-size: 0.875rem;
+  color: #4CAF50;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .hover-tooltip {
+    min-width: 240px;
+    max-width: 280px;
+  }
+  
+  .tooltip-header {
+    font-size: 0.9rem;
+    padding: 0.75rem 0.875rem;
+  }
+  
+  .tooltip-body {
+    padding: 0.875rem;
+    gap: 0.625rem;
+  }
+  
+  .tooltip-item {
+    font-size: 0.8125rem;
   }
 }
 </style>

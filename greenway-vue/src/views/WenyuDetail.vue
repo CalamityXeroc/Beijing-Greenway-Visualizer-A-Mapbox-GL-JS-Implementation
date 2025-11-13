@@ -9,7 +9,8 @@
     </header>
 
     <div class="content">
-      <div class="info-section">
+      <!-- 左侧信息栏 -->
+      <div class="left-sidebar">
         <img 
           src="/数据/绿道/温榆河绿道/温榆河风景.jpg" 
           alt="温榆河绿道景观" 
@@ -38,24 +39,6 @@
             </li>
           </ul>
         </div>
-      </div>
-
-      <div class="map-info-section">
-        <MapViewer
-          ref="mapViewer"
-          :center="mapConfig.center"
-          :zoom="mapConfig.zoom"
-          :layers="layers"
-          height="500px"
-          @map-ready="onMapReady"
-        />
-
-        <WeatherCard
-          v-if="weatherLocation"
-          :longitude="weatherLocation.lon"
-          :latitude="weatherLocation.lat"
-          @weather-loaded="onWeatherLoaded"
-        />
 
         <div class="highlights">
           <h3><i class="fas fa-info-circle"></i>绿道简介</h3>
@@ -76,8 +59,44 @@
             </span>
           </div>
         </div>
+        
+        <!-- 全景浏览按钮 -->
+        <button class="panorama-btn" @click="showPanorama = true">
+          <i class="fas fa-street-view"></i>
+          <span>360°全景浏览</span>
+        </button>
+      </div>
+
+      <!-- 右侧地图区域 -->
+      <div class="right-map">
+        <MapViewer
+          ref="mapViewer"
+          :center="mapConfig.center"
+          :zoom="mapConfig.zoom"
+          :layers="layers"
+          height="100%"
+          @map-ready="onMapReady"
+        />
       </div>
     </div>
+
+    <!-- 天气卡片（固定定位，可拖动） -->
+    <WeatherCard
+      v-if="weatherLocation"
+      :longitude="weatherLocation.lon"
+      :latitude="weatherLocation.lat"
+      @weather-loaded="onWeatherLoaded"
+    />
+
+    <!-- 百度全景查看器 -->
+    <BaiduPanoramaViewer
+      :visible="showPanorama"
+      :panorama-points="panoramaPoints"
+      :initial-point="0"
+      :baidu-map-key="baiduMapKey"
+      @close="showPanorama = false"
+      @point-change="onPointChange"
+    />
   </div>
 </template>
 
@@ -86,11 +105,52 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import MapViewer from '@/components/MapViewer.vue'
 import WeatherCard from '@/components/WeatherCard.vue'
+import BaiduPanoramaViewer from '@/components/BaiduPanoramaViewer.vue'
 
 const router = useRouter()
 
 // 地图组件引用
 const mapViewer = ref(null)
+
+// 全景查看器状态
+const showPanorama = ref(false)
+
+// 百度地图API密钥
+const baiduMapKey = 'als8C7E7ORhccEaRUiToTKbuxDIYlIiw'
+
+// 温榆河全景点位配置（真实坐标）
+const panoramaPoints = ref([
+  {
+    name: '温榆河公园东园入口',
+    description: '温榆河公园主入口，现代化景观设计',
+    lng: 116.5303,
+    lat: 40.0544
+  },
+  {
+    name: '温榆河湿地景观区',
+    description: '生态湿地，水鸟栖息地',
+    lng: 116.5198,
+    lat: 40.0612
+  },
+  {
+    name: '温榆河滨水步道',
+    description: '沿河休闲步道，两岸绿树成荫',
+    lng: 116.5142,
+    lat: 40.0578
+  },
+  {
+    name: '温榆河花田景观',
+    description: '四季花海，摄影打卡胜地',
+    lng: 116.5256,
+    lat: 40.0489
+  },
+  {
+    name: '温榆河运动活力区',
+    description: '篮球场、足球场等运动设施',
+    lng: 116.5388,
+    lat: 40.0623
+  }
+])
 
 // 地图配置
 const mapConfig = reactive({
@@ -148,6 +208,11 @@ const goBack = () => {
 const handleImageError = (event) => {
   console.warn('[WenyuDetail] 图片加载失败')
   event.target.src = 'https://via.placeholder.com/800x300?text=温榆河绿道'
+}
+
+// 全景观景点切换
+const onPointChange = (index) => {
+  console.log('[WenyuDetail] 切换到观景点:', panoramaPoints.value[index].name)
 }
 
 onMounted(() => {
@@ -224,60 +289,59 @@ onMounted(() => {
 }
 
 .content {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 2rem 2rem 2rem;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2rem;
+  display: flex;
+  height: calc(100vh - 80px);
+  gap: 0;
 }
 
-.info-section,
-.map-info-section {
+/* 左侧信息栏 */
+.left-sidebar {
+  width: 400px;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  overflow-y: auto;
+  padding: 1.5rem;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  position: relative;  /* 为工具栏定位提供参考 */
+  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.08);
+  border-right: 1px solid rgba(76, 175, 80, 0.1);
 }
 
-.info-section {
-  padding: 2rem;
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(10px);
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-  transition: transform 0.3s ease;
-}
-
-.info-section:hover {
-  transform: translateY(-5px);
+/* 右侧地图区域 */
+.right-map {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
 }
 
 .feature-image {
   width: 100%;
-  height: 300px;
+  height: 220px;
   object-fit: cover;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
   transition: transform 0.3s ease;
 }
 
 .feature-image:hover {
-  transform: scale(1.02);
+  transform: scale(1.03);
 }
 
 .highlights {
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(10px);
-  padding: 1.5rem;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(5px);
+  padding: 1.25rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(76, 175, 80, 0.1);
 }
 
 .highlights h3 {
-  color: #2196F3;
+  color: #2E7D32;
   margin-bottom: 1rem;
-  font-size: 1.3rem;
+  font-size: 1.1rem;
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -351,6 +415,49 @@ onMounted(() => {
   gap: 0.35rem;
 }
 
+/* 全景浏览按钮 */
+.panorama-btn {
+  width: 100%;
+  padding: 1rem 1.5rem;
+  background: linear-gradient(135deg, #4CAF50, #45a049);
+  border: none;
+  border-radius: 10px;
+  color: white;
+  font-size: 1.05rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
+.panorama-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(76, 175, 80, 0.4);
+  background: linear-gradient(135deg, #45a049, #388e3c);
+}
+
+.panorama-btn:active {
+  transform: translateY(-1px);
+}
+
+.panorama-btn i {
+  font-size: 1.3rem;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
 .badge-green {
   background: rgba(76, 175, 80, 0.1);
   color: #4CAF50;
@@ -369,35 +476,45 @@ onMounted(() => {
 /* 响应式 */
 @media (max-width: 1200px) {
   .content {
-    grid-template-columns: 1fr;
-    max-width: 800px;
+    flex-direction: column;
+    height: auto;
   }
 
-  .header {
-    margin: 1rem;
+  .left-sidebar {
+    width: 100%;
+    height: auto;
+  }
+
+  .right-map {
+    height: 60vh;
   }
 
   .header h1 {
-    font-size: 2rem;
+    font-size: 1.3rem;
   }
 }
 
 @media (max-width: 768px) {
-  .content {
-    padding: 0 1rem 1rem 1rem;
-  }
-
   .header {
-    padding: 1.5rem;
+    padding: 1rem 1.5rem;
   }
 
   .back-btn {
-    position: static;
-    margin-bottom: 1rem;
+    left: 1rem;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
   }
 
-  .info-section {
-    padding: 1.5rem;
+  .left-sidebar {
+    padding: 1rem;
+  }
+
+  .feature-image {
+    height: 180px;
+  }
+
+  .right-map {
+    height: 50vh;
   }
 }
 </style>

@@ -1,77 +1,99 @@
 <template>
-  <div class="weather-card">
-    <div class="weather-header">
-      <i class="fas fa-cloud-sun weather-icon"></i>
-      <h3 class="weather-title">实时天气信息</h3>
-      <button @click="refresh" class="refresh-btn" :disabled="loading" :class="{ spinning: loading }">
-        <i class="fas fa-sync-alt"></i>
-      </button>
+  <div 
+    class="weather-card" 
+    :class="{ collapsed: isCollapsed, dragging: isDragging }"
+    :style="{ 
+      transform: `translate(${position.x}px, ${position.y}px)`,
+      width: isCollapsed ? 'auto' : '280px'
+    }"
+  >
+    <!-- 折叠状态的小标签 -->
+    <div 
+      v-if="isCollapsed" 
+      class="collapsed-tab"
+      @click="toggleCollapse"
+      @mousedown.stop
+    >
+      <i class="fas fa-cloud-sun"></i>
+      <span>天气</span>
     </div>
 
-    <div v-if="loading" class="loading">
-      <i class="fas fa-spinner fa-spin"></i> 正在加载天气数据...
-    </div>
-
-    <div v-else-if="error" class="error">
-      <i class="fas fa-exclamation-triangle"></i>
-      <p>{{ error }}</p>
-      <button @click="refresh" class="retry-btn">重试</button>
-    </div>
-
-    <div v-else-if="weather" class="weather-content">
-      <div class="weather-item">
-        <div class="weather-item-icon">
-          <i :class="`fas ${getWeatherIcon(weather.weather)}`" style="color: #FF9800;"></i>
+    <!-- 展开状态 -->
+    <div v-else class="weather-card-expanded">
+      <!-- 可拖动的头部 -->
+      <div 
+        class="weather-header"
+        @mousedown="startDrag"
+      >
+        <i class="fas fa-cloud-sun weather-icon"></i>
+        <h3 class="weather-title">实时天气</h3>
+        <div class="header-controls">
+          <button 
+            @click.stop="refresh"
+            @mousedown.stop
+            class="icon-btn refresh-btn" 
+            :disabled="loading" 
+            :class="{ spinning: loading }"
+            title="刷新"
+          >
+            <i class="fas fa-sync-alt"></i>
+          </button>
+          <button 
+            @click.stop="toggleCollapse"
+            @mousedown.stop
+            class="icon-btn collapse-btn"
+            title="折叠"
+          >
+            <i class="fas fa-minus"></i>
+          </button>
         </div>
-        <div class="weather-item-value">{{ weather.weather }}</div>
-        <div class="weather-item-label">天气状况</div>
       </div>
 
-      <div class="weather-item">
-        <div class="weather-item-icon">
-          <i class="fas fa-temperature-high" style="color: #F44336;"></i>
-        </div>
-        <div class="weather-item-value">{{ weather.temperature }}°C</div>
-        <div class="weather-item-label">实时气温</div>
+      <div v-if="loading" class="loading">
+        <i class="fas fa-spinner fa-spin"></i> 
+        <span>加载中...</span>
       </div>
 
-      <div class="weather-item">
-        <div class="weather-item-icon">
-          <i class="fas fa-wind" style="color: #2196F3;"></i>
-        </div>
-        <div class="weather-item-value">{{ weather.winddirection }}风</div>
-        <div class="weather-item-label">{{ weather.windpower }}级</div>
+      <div v-else-if="error" class="error">
+        <i class="fas fa-exclamation-triangle"></i>
+        <p>{{ error }}</p>
+        <button @click="refresh" class="retry-btn">重试</button>
       </div>
 
-      <div class="weather-item">
-        <div class="weather-item-icon">
-          <i class="fas fa-tint" style="color: #00BCD4;"></i>
+      <div v-else-if="weather" class="weather-content">
+        <div class="weather-main">
+          <div class="temp-large">{{ weather.temperature }}°C</div>
+          <div class="weather-desc">
+            <i :class="`fas ${getWeatherIcon(weather.weather)}`"></i>
+            {{ weather.weather }}
+          </div>
         </div>
-        <div class="weather-item-value">{{ weather.humidity }}%</div>
-        <div class="weather-item-label">空气湿度</div>
-      </div>
 
-      <div class="weather-item">
-        <div class="weather-item-icon">
-          <i class="fas fa-clock" style="color: #9C27B0;"></i>
+        <div class="weather-details">
+          <div class="detail-item">
+            <i class="fas fa-wind"></i>
+            <span>{{ weather.winddirection }}风 {{ weather.windpower }}级</span>
+          </div>
+          <div class="detail-item">
+            <i class="fas fa-tint"></i>
+            <span>湿度 {{ weather.humidity }}%</span>
+          </div>
+          <div class="detail-item">
+            <i class="fas fa-map-marker-alt"></i>
+            <span>{{ weather.city || '北京' }}</span>
+          </div>
+          <div class="detail-item">
+            <i class="fas fa-clock"></i>
+            <span>{{ formatTime(weather.reporttime) }}</span>
+          </div>
         </div>
-        <div class="weather-item-value">{{ formatTime(weather.reporttime) }}</div>
-        <div class="weather-item-label">更新时间</div>
-      </div>
-
-      <div class="weather-item">
-        <div class="weather-item-icon">
-          <i class="fas fa-map-marker-alt" style="color: #4CAF50;"></i>
-        </div>
-        <div class="weather-item-value">{{ weather.city || '北京' }}</div>
-        <div class="weather-item-label">所在城市</div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 
 const props = defineProps({
   longitude: {
@@ -98,10 +120,56 @@ const props = defineProps({
 
 const emit = defineEmits(['weather-loaded', 'weather-error'])
 
+// 状态变量
 const weather = ref(null)
 const loading = ref(false)
 const error = ref(null)
 let refreshTimer = null
+
+// 折叠和拖动状态
+const isCollapsed = ref(true) // 初始为折叠状态
+const isDragging = ref(false)
+const position = ref({ x: 0, y: 0 })
+const dragStart = ref({ x: 0, y: 0 })
+
+// 切换折叠状态
+const toggleCollapse = () => {
+  isCollapsed.value = !isCollapsed.value
+  // 折叠时重置位置，让它回到右上角
+  if (isCollapsed.value) {
+    position.value = { x: 0, y: 0 }
+  }
+}
+
+// 开始拖动
+const startDrag = (e) => {
+  isDragging.value = true
+  dragStart.value = {
+    x: e.clientX - position.value.x,
+    y: e.clientY - position.value.y
+  }
+  
+  document.addEventListener('mousemove', onDrag)
+  document.addEventListener('mouseup', stopDrag)
+  e.preventDefault()
+}
+
+// 拖动中
+const onDrag = (e) => {
+  if (!isDragging.value) return
+  
+  position.value = {
+    x: e.clientX - dragStart.value.x,
+    y: e.clientY - dragStart.value.y
+  }
+}
+
+// 停止拖动
+const stopDrag = () => {
+  isDragging.value = false
+  document.removeEventListener('mousemove', onDrag)
+  document.removeEventListener('mouseup', stopDrag)
+}
 
 // 天气图标映射
 const weatherIcons = {
@@ -221,58 +289,114 @@ defineExpose({
 
 <style scoped>
 .weather-card {
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(10px);
-  padding: 1.5rem;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-  margin-top: 1rem;
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 1000;
+  transition: all 0.3s ease;
 }
 
-.weather-header {
+.weather-card.dragging {
+  cursor: move;
+  transition: none;
+  top: 0;
+  right: 0;
+}
+
+/* 折叠状态的小标签 */
+.collapsed-tab {
+  background: rgba(33, 150, 243, 0.95);
+  backdrop-filter: blur(10px);
+  color: white;
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
-  padding-bottom: 1rem;
-  border-bottom: 2px solid rgba(33, 150, 243, 0.1);
+  gap: 0.5rem;
+  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.collapsed-tab:hover {
+  background: rgba(33, 150, 243, 1);
+  box-shadow: 0 6px 16px rgba(33, 150, 243, 0.4);
+  transform: translateY(-2px);
+}
+
+.collapsed-tab i {
+  font-size: 1.1rem;
+}
+
+/* 展开状态 */
+.weather-card-expanded {
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(15px);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  border: 1px solid rgba(33, 150, 243, 0.2);
+}
+
+/* 可拖动的头部 */
+.weather-header {
+  background: linear-gradient(135deg, #2196F3, #1976D2);
+  color: white;
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: move;
+  user-select: none;
+}
+
+.weather-header:active {
+  cursor: grabbing;
 }
 
 .weather-icon {
-  font-size: 2rem;
-  color: #2196F3;
+  font-size: 1.3rem;
 }
 
 .weather-title {
-  font-size: 1.2rem;
+  font-size: 1rem;
   font-weight: 600;
-  color: #2c3e50;
   margin: 0;
   flex: 1;
 }
 
-.refresh-btn {
-  background: none;
+.header-controls {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.icon-btn {
+  background: rgba(255, 255, 255, 0.2);
   border: none;
+  color: white;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 1.2rem;
-  color: #2196F3;
-  padding: 0.5rem;
-  border-radius: 50%;
-  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  font-size: 0.85rem;
 }
 
-.refresh-btn:hover:not(:disabled) {
-  background: rgba(33, 150, 243, 0.1);
-  transform: rotate(180deg);
+.icon-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.3);
 }
 
-.refresh-btn:disabled {
+.icon-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-.spinning i {
+.refresh-btn.spinning i {
   animation: spin 1s linear infinite;
 }
 
@@ -281,11 +405,80 @@ defineExpose({
   to { transform: rotate(360deg); }
 }
 
+/* 内容区域 */
+.weather-content {
+  padding: 1rem;
+}
+
+.weather-main {
+  text-align: center;
+  padding: 1rem 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  margin-bottom: 0.75rem;
+}
+
+.temp-large {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #2196F3;
+  margin-bottom: 0.25rem;
+}
+
+.weather-desc {
+  font-size: 1rem;
+  color: #666;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.weather-desc i {
+  font-size: 1.2rem;
+  color: #FF9800;
+}
+
+.weather-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: #555;
+  padding: 0.4rem 0.5rem;
+  background: rgba(33, 150, 243, 0.03);
+  border-radius: 6px;
+}
+
+.detail-item i {
+  width: 18px;
+  color: #2196F3;
+  font-size: 0.9rem;
+}
+
 .loading,
 .error {
   text-align: center;
-  padding: 2rem;
+  padding: 1.5rem;
   color: #999;
+}
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.loading i {
+  font-size: 1.5rem;
+  color: #2196F3;
 }
 
 .error {
@@ -294,75 +487,29 @@ defineExpose({
 
 .error i {
   font-size: 2rem;
-  margin-bottom: 1rem;
-  display: block;
+  margin-bottom: 0.5rem;
 }
 
 .error p {
-  margin: 0 0 1rem 0;
-  font-size: 1rem;
+  margin: 0.5rem 0;
+  font-size: 0.9rem;
 }
 
 .retry-btn {
+  margin-top: 0.75rem;
   padding: 0.5rem 1rem;
   background: #2196F3;
   color: white;
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  transition: background 0.2s;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
 }
 
 .retry-btn:hover {
   background: #1976D2;
-}
-
-.weather-content {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1rem;
-}
-
-.weather-item {
-  text-align: center;
-  padding: 1rem;
-  background: rgba(33, 150, 243, 0.05);
-  border-radius: 12px;
-  transition: transform 0.2s ease;
-}
-
-.weather-item:hover {
-  transform: translateY(-3px);
-  background: rgba(33, 150, 243, 0.1);
-}
-
-.weather-item-icon {
-  font-size: 1.8rem;
-  margin-bottom: 0.5rem;
-}
-
-.weather-item-value {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #2196F3;
-  margin-bottom: 0.25rem;
-}
-
-.weather-item-label {
-  font-size: 0.85rem;
-  color: #666;
-}
-
-/* 响应式 */
-@media (max-width: 768px) {
-  .weather-content {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 480px) {
-  .weather-content {
-    grid-template-columns: 1fr;
-  }
+  transform: translateY(-1px);
 }
 </style>

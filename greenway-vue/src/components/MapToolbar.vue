@@ -278,6 +278,12 @@ const initMeasureLayer = () => {
 
 // 激活绘制工具
 const activateDrawTool = (type) => {
+  // 如果点击的是当前已激活的工具，则关闭它
+  if (activeTool.value === type) {
+    removeCurrentInteraction()
+    return
+  }
+  
   removeCurrentInteraction()
   
   const geometryType = type === 'point' ? 'Point' : 
@@ -299,6 +305,12 @@ const activateDrawTool = (type) => {
 
 // 激活测量工具
 const activateMeasureTool = (type) => {
+  // 如果点击的是当前已激活的工具，则关闭它
+  if (activeTool.value === `measure-${type}`) {
+    removeCurrentInteraction()
+    return
+  }
+  
   removeCurrentInteraction()
   
   const geometryType = type === 'length' ? 'LineString' : 'Polygon'
@@ -306,7 +318,24 @@ const activateMeasureTool = (type) => {
   
   drawInteraction = new Draw({
     source: measureLayer.getSource(),
-    type: geometryType
+    type: geometryType,
+    // 确保只在测量图层上绘制
+    style: new Style({
+      fill: new Fill({
+        color: 'rgba(33, 150, 243, 0.2)'
+      }),
+      stroke: new Stroke({
+        color: '#2196F3',
+        width: 2,
+        lineDash: [10, 10]
+      }),
+      image: new CircleStyle({
+        radius: 5,
+        fill: new Fill({
+          color: '#2196F3'
+        })
+      })
+    })
   })
   
   props.mapManager.getMap().addInteraction(drawInteraction)
@@ -328,10 +357,20 @@ const activateMeasureTool = (type) => {
 
 // 移除当前交互
 const removeCurrentInteraction = () => {
+  const map = props.mapManager.getMap()
   if (drawInteraction) {
-    props.mapManager.getMap().removeInteraction(drawInteraction)
+    // 从地图中移除交互
+    map.removeInteraction(drawInteraction)
     drawInteraction = null
   }
+  // 清除所有绘制交互（确保没有遗留的交互）
+  // 使用slice()创建副本来避免遍历时修改数组的问题
+  const interactions = map.getInteractions().getArray().slice()
+  interactions.forEach(interaction => {
+    if (interaction instanceof Draw) {
+      map.removeInteraction(interaction)
+    }
+  })
   activeTool.value = null
 }
 
