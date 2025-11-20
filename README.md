@@ -4,10 +4,42 @@
 ![OpenLayers](https://img.shields.io/badge/OpenLayers-8.2.0-blue.svg)
 ![Vite](https://img.shields.io/badge/Vite-5.0-blueviolet.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Status](https://img.shields.io/badge/status-Early%20Development-yellow.svg)
 
 A modern, interactive WebGIS platform for exploring Beijing's extensive greenway network. Built with **Vue 3 + OpenLayers + Vite**, offering an intuitive interface to discover urban green corridors, ecological spaces, and recreational paths.
 
 [中文文档](./README_zh-CN.md)
+
+## 📢 Project Status
+
+> ⚠️ **This project is currently in early development stage.**
+
+### Current Implementation
+- ✅ **Wenyu River Greenway**: Full implementation with interactive map, 360° panoramic views, and detailed information
+- ✅ **Core Framework**: Complete WebGIS foundation with OpenLayers integration
+- ✅ **Basic Features**: Map tools, layer management, weather widget, and panoramic viewer
+
+### Planned Expansions
+- 🚧 **Additional Greenways**: More Beijing greenway routes data and detail pages
+- 🚧 **Enhanced Analytics**: Advanced spatial analysis and statistics
+- 🚧 **User Features**: Personalized routes, favorites, and social sharing
+
+### 🔒 About Open Source
+
+This is a **partial open-source project**. The following content is currently not publicly available:
+
+- **Additional Greenway Data**: Other Beijing greenway datasets (to be released after academic publication)
+- **Core Algorithms**: Advanced spatial analysis and optimization algorithms (for competition and research purposes)
+- **Complete Backend**: Full backend implementation and API services
+
+**Reason for Partial Release**: This project is being developed for academic competitions and research publications. To maintain research integrity and competitive advantage, certain core components will be released after:
+- Competition results are announced
+- Research papers are published
+- Academic requirements are fulfilled
+
+**Expected Full Release**: We plan to fully open-source all components by mid-2026, including complete datasets, algorithms, and backend services.
+
+**We welcome community feedback and suggestions!** Feel free to open issues or discussions to help shape the future of this project. For academic collaboration or access to complete code, please contact via email.
 
 ## ✨ Key Features
 
@@ -35,10 +67,11 @@ A modern, interactive WebGIS platform for exploring Beijing's extensive greenway
 - **Interactive Navigation**: Click to explore and navigate through panoramic scenes
 
 ### 🎯 Greenway Details
-- **Wenyu River Greenway**: Detailed showcase of the 108km waterfront path
+- **Wenyu River Greenway**: Detailed showcase of the 108km waterfront path (Currently implemented)
 - **Rich Imagery**: Visual guides to greenway attractions and facilities
 - **Comprehensive Info**: Coverage area, length, amenities, and highlights
 - **Left-Right Layout**: Clean, organized information presentation with full-size map
+- **More greenways coming soon**: Additional Beijing greenway routes in future updates
 
 ## 🚀 Quick Start
 
@@ -165,13 +198,23 @@ Geospatial data visualized on the platform includes:
 
 ## 🤝 Contributing
 
-Contributions are welcome! Feel free to submit a Pull Request.
+We welcome contributions and feedback! As this project is in early development, your input is especially valuable.
 
+### How to Contribute
+- 💡 **Suggestions**: Open an issue to share ideas for new features or improvements
+- 🐛 **Bug Reports**: Found a bug? Please report it with detailed steps to reproduce
+- 📝 **Documentation**: Help improve our documentation and guides
+- 🎨 **UI/UX Feedback**: Share your thoughts on design and user experience
+- 🔧 **Code Contributions**: Submit pull requests for bug fixes or new features
+
+### Pull Request Process
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
 3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
 4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+5. Open a Pull Request with a clear description of changes
+
+**Note**: As we're in early development, please open an issue for discussion before working on major features.
 
 ## 📄 License
 
@@ -187,6 +230,13 @@ This project is licensed under the MIT License - see the [LICENSE](./LICENSE) fi
 ## 📧 Contact
 
 Project Link: [https://github.com/CalamityXeroc/Beijing-Greenway-Visualizer-A-openlayer-JS-Implementation](https://github.com/CalamityXeroc/Beijing-Greenway-Visualizer-A-openlayer-JS-Implementation)
+
+**For Academic Collaboration**:
+- 📬 Full code access for research purposes
+- 🤝 Collaboration on greenway visualization projects
+- 📊 Data sharing and joint research opportunities
+
+Please open an issue or contact the maintainer for academic inquiries.
 
 ---
 
